@@ -7,9 +7,14 @@ const ejsMate = require("ejs-mate");
 const ExpressError = require("./utils/ExpressError.js");
 const session = require("express-session");
 const flash = require("connect-flash");
+const passport = require("passport");
+const LocalStrategy = require("passport-local");
+const User = require("./models/user.js");
 
-const listings = require("./routes/listing.js");
-const reviews = require("./routes/review.js");
+const listingsRouter = require("./routes/listing.js");
+const reviewsRouter = require("./routes/review.js");
+const { register } = require("module");
+const userRouter = require("./routes/user.js");
 
 const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
 
@@ -53,6 +58,13 @@ app.get("/", (req, res) => {
 app.use(session(sessionOptions));
 app.use(flash());
 
+app.use(passport.initialize()); // we need to initialze before use it
+app.use(passport.session()); // so that a user dont have to sign in multiple times in the same session
+passport.use(new LocalStrategy(User.authenticate()));// to authenticate new user through lcoal strategy useing authenticate method
+
+passport.serializeUser(User.serializeUser()); // to serialize user into the session
+passport.deserializeUser(User.deserializeUser()); // to deserialize user into the session
+
 // middleware
 app.use((req, res, next) => {
     res.locals.success = req.flash("success");
@@ -60,9 +72,21 @@ app.use((req, res, next) => {
     next();
 });
 
+/* app.get("/demouser", async (req, res) => {
+    let fakeUser = new User({
+        email: "student@gmail.oom",
+        username: "delta-student",
+    });
 
-app.use("/listings", listings);
-app.use("/listings/:id/reviews", reviews);
+    let registeredUser = await User.register(fakeUser, "helloworld"); // register is a static method and here helloworld is our pasword for the fakeuser
+    // this method will save register a new user instance and it will also check that username is unique or not
+    res.send(registeredUser);
+}); */
+
+
+app.use("/listings", listingsRouter);
+app.use("/listingsRouter/:id/reviews", reviewsRouter);
+app.use("", userRouter);
 
 
 app.all("*", (req, res, next) => {
