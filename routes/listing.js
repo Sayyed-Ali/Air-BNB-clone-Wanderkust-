@@ -1,23 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const wrapAsync = require("../utils/wrapAsync.js");
-const ExpressError = require("../utils/ExpressError.js");
-const { listingSchema } = require("../schema.js");
 const Listing = require("../models/listing.js");
-const { isLoggedIn } = require("../middleware.js");
-
-//THIS IS A SCHEMA VALIDATION MIDDLEWARE
-const validateListing = (req, res, next) => {
-    let { error } = listingSchema.validate(req.body);
-
-    if (error) {
-        let errMsg = error.details.map((el) => el.message).join(",");
-        throw new ExpressError(400, errMsg);
-    } else {
-        next();
-    }
-}
-
+const { isLoggedIn, isOwner, validateListing } = require("../middleware.js");
 
 
 /* router .get("/testListing", async (req, res) => {
@@ -60,6 +45,7 @@ router.post("/", isLoggedIn, validateListing, wrapAsync(async (req, res, next) =
     // we ahve made  a validation function above
 
     const newListing = new Listing(req.body.listing);
+    newListing.owner = req.user._id;
     await newListing.save();
     req.flash("success", "New Listing Created");
     res.redirect("/listings");
@@ -71,7 +57,7 @@ router.post("/", isLoggedIn, validateListing, wrapAsync(async (req, res, next) =
 //UPDATE: edit and update route
 //GET => /listings/:id/edit
 //PUT =>/listing/:id
-router.get("/:id/edit", isLoggedIn, wrapAsync(async (req, res) => {
+router.get("/:id/edit", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
     let { id } = req.params;
     const listing = await Listing.findById(id);
     if (!listing) {
@@ -88,7 +74,7 @@ router.get("/:id/edit", isLoggedIn, wrapAsync(async (req, res) => {
 }) */
 // above is what mam give which was earlier working fine. But there are differences in the dataset provided schema and the schema that we have written for our database
 //therefore below is whatc chatgopt gave me and i got it...
-router.put("/:id", validateListing, wrapAsync(async (req, res) => {
+router.put("/:id", isLoggedIn, isOwner, validateListing, wrapAsync(async (req, res) => {
     let { id } = req.params;
     let listing = await Listing.findById(id);
     /*  if (!req.body.listing) {
@@ -113,11 +99,11 @@ router.put("/:id", validateListing, wrapAsync(async (req, res) => {
 
 // DELETE ROUTE
 //delete => /listings/:id
-router.delete("/:id", isLoggedIn, wrapAsync(async (req, res) => {
+router.delete("/:id", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
     let { id } = req.params;
     let delListing = await Listing.findByIdAndDelete(id);
     console.log(delListing);
-    req.flash("success", "Listing Deleted");
+    req.flash("success", "Listing Deleted"); 1
     res.redirect("/listings");
 }));
 
@@ -126,11 +112,19 @@ router.delete("/:id", isLoggedIn, wrapAsync(async (req, res) => {
 //GET => /listings/:id => show specific listing data
 router.get("/:id", wrapAsync(async (req, res) => {
     let { id } = req.params;
-    const listing = await Listing.findById(id).populate("reviews"); // did populate bcoz we ned it show reviews on page
+    const listing = await Listing.findById(id)
+        .populate({ // populate nesting
+            path: "reviews",
+            populate: {
+                path: "author",
+            },
+        })
+        .populate("owner"); // did populate bcoz we ned it show reviews on page
     if (!listing) {
         req.flash("error", "Listing you requested for does not exist");
         return res.redirect("/listings");
     }
+    //console.log(listing);
     res.render("listings/show.ejs", { listing });
 }));
 
