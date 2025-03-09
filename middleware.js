@@ -7,7 +7,7 @@ module.exports.isLoggedIn = (req, res, next) => {
     //console.log(req.path, "..", req.originalUrl);//path is relative // original path is absolute
     if (!req.isAuthenticated()) {
         req.session.redirectUrl = req.originalUrl;
-        req.flash("error", "You are not the owner of this listing");
+        req.flash("error", "You must be logged in");
         return res.redirect("/login");
     }
     next();
