@@ -118,3 +118,9 @@ body {
     justify-content: space-evenly;
     margin-right: 2rem;
 }
+
+/* map */
+#map {
+    height: 400px;
+    width: 80vh;
+}
