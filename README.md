@@ -1,4 +1,4 @@
-Wanderlust - An Airbnb Clone
+# Wanderlust - An Airbnb Clone
 
 Wanderlust is a full-stack web application inspired by Airbnb, built using **Node.js**, **Express**, **MongoDB**, and **EJS**. It allows users to explore travel destinations, list their own properties, and book stays just like on the original platform.
 
